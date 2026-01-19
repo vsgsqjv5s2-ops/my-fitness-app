@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b2a4a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Meal Checklist" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Weight Loss Planner</title>
+  <style>
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;
+      background:#071a2f;
+      color:#f2f6ff;
+      padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
+    }
+    h1,h2,h3{margin:6px 0}
+    .card{
+      background:#0b2a4a;
+      border-radius:14px;
+      padding:14px;
+      margin-bottom:12px;
+    }
+    label{
+      display:flex;
+      gap:10px;
+      padding:8px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    input[type="checkbox"]{
+      width:20px;height:20px;
+      accent-color:#2ee59d;
+    }
+    .small{font-size:12px;color:#b8c6d9}
+    input[type="text"],input[type="number"],input[type="date"]{
+      width:100%;
+      padding:8px;
+      border-radius:8px;
+      border:none;
+      margin-top:4px;
+    }
+    button{
+      padding:10px;
+      border:none;
+      border-radius:10px;
+      background:#ffd166;
+      color:#0b2a4a;
+      font-weight:bold;
+      margin-top:8px;
+      width:100%;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Weight Loss Planner</h1>
+<p class="small">Meals + Habits + Weekly Workouts + Weigh-In Tracker</p>
+
+<div class="card">
+<h2>Daily Habits</h2>
+<div id="habits"></div>
+</div>
+
+<div class="card">
+<h2>Weekly Workout Plan</h2>
+<p class="small">Target: 3 strength days + 3 cardio days</p>
+<div id="workouts"></div>
+</div>
+
+<div class="card">
+<h2>Weekly Meals</h2>
+<div id="meals"></div>
+</div>
+
+<div class="card">
+<h2>Weekly Weigh-In</h2>
+<label>Weigh-in Day<input id="weighDay" type="text"></label>
+<label>Date<input id="weighDate" type="date"></label>
+<label>Start Weight (lbs)<input id="startWeight" type="number"></label>
+<label>Current Weight (lbs)<input id="currentWeight" type="number"></label>
+<label>Change This Week<input id="changeWeek" type="text" disabled></label>
+<button onclick="clearWeights()">Clear Weigh-In</button>
+</div>
+
+<button onclick="resetWeek()">Reset All Checklists</button>
+
+<script>
+const STORAGE_KEY="wl_planner_v2";
+
+const habits=[
+ {id:"h1",text:"Follow meal plan"},
+ {id:"h2",text:"Drink 100 oz water"},
+ {id:"h3",text:"8,000+ steps/activity"},
+ {id:"h4",text:"No sugary drinks"},
+ {id:"h5",text:"No alcohol/minimal"}
+];
+
+const workouts=[
+ {id:"w1",text:"Monday: Strength (Upper Body)"},
+ {id:"w2",text:"Tuesday: Cardio (30-45 min walk)"},
+ {id:"w3",text:"Wednesday: Strength (Lower Body)"},
+ {id:"w4",text:"Thursday: Cardio (30-45 min walk)"},
+ {id:"w5",text:"Friday: Strength (Full Body)"},
+ {id:"w6",text:"Saturday: Light Cardio or Mobility"},
+ {id:"w7",text:"Sunday: Rest"}
+];
+
+const meals=[
+ "Mon: Eggs + Sweet Potato + Veg",
+ "Tue: Sausage + Eggs + Veg",
+ "Wed: Eggs + Sweet Potato + Veg",
+ "Thu: Sausage + Eggs + Veg",
+ "Fri: Eggs + Sweet Potato + Veg",
+ "Sat: Sausage + Eggs + Veg",
+ "Sun: Eggs + Sweet Potato + Veg"
+];
+
+function load(){return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");}
+function save(data){localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}
+
+function renderList(list, elementId, prefix){
+ const data=load();
+ const wrap=document.getElementById(elementId);
+ wrap.innerHTML="";
+ list.forEach(item=>{
+   const id=item.id||prefix+item;
+   const checked=data[id]||false;
+   const label=document.createElement("label");
+   const cb=document.createElement("input");
+   cb.type="checkbox";
+   cb.checked=checked;
+   cb.onchange=()=>{data[id]=cb.checked;save(data);};
+   const span=document.createElement("span");
+   span.textContent=item.text||item;
+   label.appendChild(cb);
+   label.appendChild(span);
+   wrap.appendChild(label);
+ });
+}
+
+function renderMeals(){
+ const data=load();
+ const wrap=document.getElementById("meals");
+ wrap.innerHTML="";
+ meals.forEach((meal,i)=>{
+   const id="m"+i;
+   const checked=data[id]||false;
+   const label=document.createElement("label");
+   const cb=document.createElement("input");
+   cb.type="checkbox";
+   cb.checked=checked;
+   cb.onchange=()=>{data[id]=cb.checked;save(data);};
+   const span=document.createElement("span");
+   span.textContent=meal;
+   label.appendChild(cb);
+   label.appendChild(span);
+   wrap.appendChild(label);
+ });
+}
+
+function updateWeights(){
+ const data=load();
+ const sw=parseFloat(data.startWeight);
+ const cw=parseFloat(data.currentWeight);
+ if(!isNaN(sw)&&!isNaN(cw)){
+   document.getElementById("changeWeek").value=(cw-sw).toFixed(1)+" lbs";
+ }
+}
+
+function bindWeights(){
+ ["weighDay","weighDate","startWeight","currentWeight"].forEach(id=>{
+   const el=document.getElementById(id);
+   el.value=load()[id]||"";
+   el.oninput=()=>{
+     const data=load();
+     data[id]=el.value;
+     save(data);
+     updateWeights();
+   };
+ });
+ updateWeights();
+}
+
+function clearWeights(){
+ const data=load();
+ delete data.weighDay;delete data.weighDate;
+ delete data.startWeight;delete data.currentWeight;
+ save(data);
+ location.reload();
+}
+
+function resetWeek(){
+ localStorage.removeItem(STORAGE_KEY);
+ location.reload();
+}
+
+renderList(habits,"habits","h");
+renderList(workouts,"workouts","w");
+renderMeals();
+bindWeights();
+</script>
+
+</body>
+</html>
